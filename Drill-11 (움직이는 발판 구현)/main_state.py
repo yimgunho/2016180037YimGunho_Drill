@@ -92,6 +92,11 @@ def update():
         if collide(brick, ball):
             ball.brick_move(brick.dir, brick.move_speed)
 
+    if collide(brick, boy):
+        boy.brick_move(brick.dir, brick.move_speed)
+    else:
+        boy.fall_check = True
+
 
 def draw():
     clear_canvas()

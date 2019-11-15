@@ -50,12 +50,22 @@ class IdleState:
     def exit(boy, event):
         if event == SPACE:
             boy.jump()
-        pass
 
     @staticmethod
     def do(boy):
         boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
-        boy.timer -= 1
+        if boy.y_dir == 1:
+            boy.y += boy.fall_speed * game_framework.frame_time
+            boy.y = clamp(90, boy.y, 400)
+            if boy.y >= 400:
+                boy.y_dir = 2
+        elif boy.y_dir == 2 and boy.fall_check:
+            boy.y -= boy.fall_speed * game_framework.frame_time
+            boy.y = clamp(90, boy.y, 400)
+            if boy.y <= 90:
+                boy.y_dir = 0
+                boy.fall_check = False
+        #boy.timer -= 1
         #if boy.timer == 0:
          #   boy.add_event(SLEEP_TIMER)
 
@@ -91,6 +101,18 @@ class RunState:
         boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
         boy.x += boy.velocity * game_framework.frame_time
         boy.x = clamp(25, boy.x, 1600 - 25)
+
+        if boy.y_dir == 1:
+            boy.y += boy.fall_speed * game_framework.frame_time
+            boy.y = clamp(90, boy.y, 400)
+            if boy.y >= 400:
+                boy.y_dir = 2
+        elif boy.y_dir == 2 and boy.fall_check:
+            boy.y -= boy.fall_speed * game_framework.frame_time
+            boy.y = clamp(90, boy.y, 400)
+            if boy.y <= 90:
+                boy.y_dir = 0
+                boy.fall_check = False
 
     @staticmethod
     def draw(boy):
@@ -140,14 +162,15 @@ class Boy:
         self.image = load_image('animation_sheet.png')
         self.font = load_font('ENCR10B.TTF', 16)
         self.dir = 1
+        self.y_dir = 0
         self.velocity = 0
         self.frame = 0
         self.event_que = []
         self.cur_state = IdleState
         self.cur_state.enter(self, None)
-
-    def jump(self):
-        pass
+        self.move_speed = None
+        self.fall_speed = 500
+        self.fall_check = False
 
     def get_bb(self):
         return self.x - 21, self.y - 46, self.x + 21, self.y + 46
@@ -173,3 +196,22 @@ class Boy:
             key_event = key_event_table[(event.type, event.key)]
             self.add_event(key_event)
 
+    def brick_move(self, dir, move_speed):
+        if self.y >= 240:
+            self.fall_check = 0
+        elif self.y <= 160:
+            self.y_dir = 2
+
+        if self.fall_speed == 0:
+            self.y = 266
+
+        if dir >= 1:
+            self.x += move_speed * game_framework.frame_time
+        else:
+            self.x -= move_speed * game_framework.frame_time
+
+        self.x = clamp(20, self.x, 1600 - 20)
+
+    def jump(self):
+        self.fall_check = True
+        self.y_dir = 1
