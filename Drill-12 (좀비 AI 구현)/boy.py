@@ -1,6 +1,9 @@
+import random
+import math
 import game_framework
+from BehaviorTree import BehaviorTree, SelectorNode, SequenceNode, LeafNode
 from pico2d import *
-
+import main_state
 import game_world
 
 # Boy Run Speed
@@ -32,6 +35,17 @@ key_event_table = {
     (SDL_KEYDOWN, SDLK_SPACE): SPACE
 }
 
+def collide(a, b):
+    # fill here
+    left_a, bottom_a, right_a, top_a = a.get_bb()
+    left_b, bottom_b, right_b, top_b = b.get_bb()
+
+    if left_a > right_b: return False
+    if right_a < left_b: return False
+    if top_a < bottom_b: return False
+    if bottom_a > top_b: return False
+
+    return True
 
 # Boy States
 
@@ -130,6 +144,10 @@ class Boy:
             self.cur_state.exit(self, event)
             self.cur_state = next_state_table[self.cur_state][event]
             self.cur_state.enter(self, event)
+
+        zombie = main_state.get_zombie()
+        if zombie.hp >= 750 and collide(zombie, self):
+            game_framework.quit()
 
     def draw(self):
         self.cur_state.draw(self)

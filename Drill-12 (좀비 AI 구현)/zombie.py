@@ -20,6 +20,18 @@ FRAMES_PER_ACTION = 10
 
 animation_names = ['Attack', 'Dead', 'Idle', 'Walk']
 
+def collide(a, b):
+    # fill here
+    left_a, bottom_a, right_a, top_a = a.get_bb()
+    left_b, bottom_b, right_b, top_b = b.get_bb()
+
+    if left_a > right_b: return False
+    if right_a < left_b: return False
+    if top_a < bottom_b: return False
+    if bottom_a > top_b: return False
+
+    return True
+
 
 class Zombie:
     images = None
@@ -70,14 +82,14 @@ class Zombie:
     def find_player(self):
         boy = main_state.get_boy()
         distance = (boy.x - self.x) ** 2 + (boy.y - self.y) ** 2
-        if distance < (PIXEL_PER_METER * 10) ** 2:
+        if distance < (PIXEL_PER_METER * 100) ** 2:
             self.dir = math.atan2(boy.y - self.y, boy.x - self.x)
             return BehaviorTree.SUCCESS
         else:
             self.speed = 0
             return BehaviorTree.FAIL
 
-    def find_bigball(self):
+    def find_ball(self):
         balls = main_state.get_ball()
         if(len(balls) > 5):
             self.dir = math.atan2(balls[5].y - self.y, balls[5].x - self.x)
@@ -89,6 +101,11 @@ class Zombie:
             return BehaviorTree.FAIL
 
     def move_to_player(self):
+        self.speed = RUN_SPEED_PPS
+        self.calculate_current_position()
+        return BehaviorTree.SUCCESS
+
+    def move_to_ball(self):
         self.speed = RUN_SPEED_PPS
         self.calculate_current_position()
         return BehaviorTree.SUCCESS
@@ -109,17 +126,31 @@ class Zombie:
             return BehaviorTree.RUNNING
 
     def build_behavior_tree(self):
-        find_bigball_node = LeafNode("find_bigball", self.find_bigball)
+        wander_node = LeafNode("Wander", self.wander)
+
+        find_ball_node = LeafNode("find_ball", self.find_ball)
+        move_to_ball_node = LeafNode("Move to Ball", self.move_to_ball)
+        Chase_Ball_node = SequenceNode("Chase_Ball")
+        Chase_Ball_node.add_children(find_ball_node, move_to_ball_node)
+
+        find_player_node = LeafNode("Find Player", self.find_player)
         move_to_player_node = LeafNode("Move to Player", self.move_to_player)
-        chase_node = SequenceNode("Chase")
-        chase_node.add_children(find_bigball_node, move_to_player_node)
-        self.bt = BehaviorTree(chase_node)
+        Chase_Palyer_node = SequenceNode("Chase_Palyer")
+        Chase_Palyer_node.add_children(find_player_node, move_to_player_node)
+
+        wander_chase_node = SelectorNode("WanderChase")
+        wander_chase_node.add_children(Chase_Ball_node, Chase_Palyer_node, wander_node)
+        self.bt = BehaviorTree(wander_chase_node)
+
 
     def get_bb(self):
         return self.x - 50, self.y - 50, self.x + 50, self.y + 50
 
     def update(self):
         self.bt.run()
+        boy = main_state.get_boy()
+        if self.hp < 750 and collide(self, boy):
+            game_world.remove_object(self)
 
     def draw(self):
         draw_rectangle(*self.get_bb())
