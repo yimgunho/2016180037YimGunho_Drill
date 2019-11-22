@@ -46,6 +46,7 @@ class Ball:
         if big_ball_count <= 0 and collide(zombie, self):
             balls.remove(self)
             game_world.remove_object(self)
+            zombie.hp += 50
 
     def reset(self):
         if self.check:
@@ -71,3 +72,5 @@ class BigBall(Ball):
             balls.remove(self)
             game_world.remove_object(self)
             big_ball_count -= 1
+            zombie.hp += 100
+
